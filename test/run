@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+t=5
+wait_until_starting()
+{
+    until nc -z $1 $2; do
+        if [ $t -le 0 ]; then
+            return -1
+        fi
+        sleep 1;
+        t=$(($t-1))
+    done
+}
+wait_until_starting cadvisor 8080
+wait_until_starting example-app 3000
+
+echo 'starting test'
+exec go test

@@ -1,0 +1,35 @@
+version: "3.3"
+
+services:
+  example-app:
+    build:
+      context: ./example-app
+    network_mode: bridge
+    ports:
+      - '3000:3000'
+    command: -c ${RANDOM_METRIC_COUNT:-50} -cl ${CUSTOM_LABEL:-custom_label}
+
+  test:
+    build:
+      context: ./test
+    volumes:
+      - './test:/go/src/test'
+    depends_on:
+      - example-app
+      - cadvisor
+    network_mode: bridge
+    links:
+      - cadvisor
+      - example-app
+
+  cadvisor:
+    image: ${CIMAGE:-cadvisor}
+    network_mode: bridge      
+    ports:
+      - '8080:8080'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /dev:/dev:ro
+      - /var/lib/docker/:/var/lib/docker:ro
