@@ -17,6 +17,7 @@ var (
 
 	ignoreMetricRe  = regexp.MustCompile(`^container_.*$`)
 	ignoreLabelRe = regexp.MustCompile(`^container_.*$|^image$|^id$|^name$`)
+        metricNameRe = regexp.MustCompile(`^app_(.*)$`)
 )
 
 func extendMetric(m model.Metric, labels model.LabelSet) {
@@ -74,12 +75,18 @@ func fetchAppMetricsFromCadvisor(t *testing.T, res chan model.Vector, name strin
 		metName := string(sample.Metric[model.MetricNameLabel])
 		if !ignoreMetricRe.MatchString(metName) {
 			if val, ok := sample.Metric["name"]; ok && string(val) == name {
-				for labelName, _  := range sample.Metric {
-					if ignoreLabelRe.MatchString(string(labelName)) {
-						delete(sample.Metric, labelName)
+                                s := model.Sample{}
+                                s.Value = sample.Value
+                                s.Timestamp = sample.Timestamp
+                                s.Metric = make(model.Metric)
+                                s.Metric[model.MetricNameLabel] = sample.Metric[model.MetricNameLabel]
+				for labelName, labelValue  := range sample.Metric {
+					if sm := metricNameRe.FindStringSubmatch(string(labelName)); len(sm) > 0 {
+						s.Metric[model.LabelName(sm[1])] = labelValue
 					}
 				}
-				resVector = append(resVector, sample)
+//                                fmt.Printf("--------------- %v\n", s)
+				resVector = append(resVector, &s)
 			}
 		}
         }
